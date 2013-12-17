@@ -1,0 +1,69 @@
+package ckr.Signs;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+
+public class EventListener
+  implements Listener
+{
+  public Signs plugin;
+
+  public EventListener(Signs plugin)
+  {
+    this.plugin = plugin;
+  }
+  @EventHandler
+  public void change(SignChangeEvent e) {
+    if (e.getLine(0).equalsIgnoreCase("[lsigns]")) {
+      Location loc = e.getBlock().getLocation();
+      FileConfiguration cfg = Signs.signcfg;
+      Signs.schilder += 1;
+      cfg.set("Schilder", Integer.valueOf(Signs.schilder));
+      cfg.set(Signs.schilder + ".X", Double.valueOf(loc.getX()));
+      cfg.set(Signs.schilder + ".Y", Double.valueOf(loc.getY()));
+      cfg.set(Signs.schilder + ".Z", Double.valueOf(loc.getZ()));
+      cfg.set(Signs.schilder + ".W", loc.getWorld().getName());
+      cfg.set(Signs.schilder + ".Servername", e.getLine(1));
+      cfg.set(Signs.schilder + ".IP", "127.0.0.1");
+      cfg.set(Signs.schilder + ".Port", Integer.valueOf(Integer.parseInt(e.getLine(2))));
+      try {
+        cfg.save(new File(this.plugin.getDataFolder(), "signs.yml"));
+      } catch (IOException localIOException) {
+      }
+      e.getPlayer().sendMessage("§aErfolgreich ein Teleport-Schild erstellt! (Server: " + e.getLine(1).toUpperCase() + ")");
+    }
+  }
+
+  @EventHandler
+  public void interact(PlayerInteractEvent e) {
+    Player p = e.getPlayer();
+    if ((e.getAction() == Action.RIGHT_CLICK_BLOCK) && 
+      ((e.getClickedBlock().getState() instanceof Sign))) {
+      Sign s = (Sign)e.getClickedBlock().getState();
+      if (s.getLine(0).startsWith("§5[Join-")) {
+        String servername = ((String[])Signs.signs.get(s))[2];
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(b);
+        try {
+          out.writeUTF("Connect");
+          out.writeUTF(servername);
+        } catch (Exception localException) {
+        }
+        p.sendPluginMessage(this.plugin, "BungeeCord", b.toByteArray());
+      }
+    }
+  }
+}
