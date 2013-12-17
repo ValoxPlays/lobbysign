@@ -1,0 +1,86 @@
+package ckr.Signs;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
+import org.bukkit.configuration.file.FileConfiguration;
+
+public class SignTask
+  implements Runnable
+{
+  public void run()
+  {
+    if (Signs.schilder == 0) return;
+    for (int i = 0; i < Signs.schilder; i++) {
+      FileConfiguration cfg = Signs.signcfg;
+      int x = cfg.getInt(Signs.schilder + ".X");
+      int y = cfg.getInt(Signs.schilder + ".Y");
+      int z = cfg.getInt(Signs.schilder + ".Z");
+      World world = Bukkit.getWorld(cfg.getString(Signs.schilder + ".W"));
+      Location loc = new Location(world, x, y, z);
+      Sign s = null;
+
+      if (world.getBlockAt(loc) == null) return;
+      if ((world.getBlockAt(loc).getState() instanceof Sign)) {
+        s = (Sign)world.getBlockAt(loc).getState();
+      }
+
+      if (s == null) return;
+
+      String servername = cfg.getString(Signs.schilder + ".Servername");
+      String ip = cfg.getString(Signs.schilder + ".IP");
+      int port = cfg.getInt(Signs.schilder + ".Port");
+
+      Ping ping = new Ping(ip, port);
+
+      boolean online = false;
+      int onp = 0;
+      int maxp = 0;
+      String motd = null;
+
+      if (ping.fetchData()) {
+        online = true;
+        onp = ping.getPlayersOnline();
+        maxp = ping.getMaxPlayers();
+        motd = ping.getMotd();
+      } else {
+        online = false;
+      }
+
+      if (online)
+      {
+        String[] split = motd.split(":");
+        String status = split[0];
+        String map = split[1];
+
+        if (status.equalsIgnoreCase("lobby")) {
+          if (onp == maxp) {
+            s.setLine(0, "§4[Full-" + servername.toUpperCase() + "]");
+            s.setLine(1, map);
+            s.setLine(2, "§7§l" + onp + "/" + maxp);
+            s.setLine(3, "§5Lobby");
+          } else {
+            s.setLine(0, "§5[Join-" + servername.toUpperCase() + "]");
+            s.setLine(1, map);
+            s.setLine(2, "§7§l" + onp + "/" + maxp);
+            s.setLine(3, "§5Lobby");
+          }
+        } else if (status.equalsIgnoreCase("ingame")) {
+          s.setLine(0, "§7[NotJoinable]");
+          s.setLine(1, map);
+          s.setLine(2, "§7§l" + onp + "/" + maxp);
+          s.setLine(3, "§7In Game");
+        }
+      } else {
+        s.setLine(0, "§4§l✖✖✖✖✖✖✖✖✖");
+        s.setLine(1, "§4[Restarting]");
+        s.setLine(2, servername.toUpperCase());
+        s.setLine(3, "§4§l✖✖✖✖✖✖✖✖✖");
+      }
+
+      s.update();
+    }
+  }
+}
